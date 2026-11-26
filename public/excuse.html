@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#fff4e8">
+    <title>言い訳メーカー</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="excuse.css">
+</head>
+<body>
+    <main class="container excuse-app">
+        <header class="header">
+            <div>
+                <p class="eyebrow">言い訳メーカー</p>
+                <h1>そのピンチ、<br>壮大な物語に。</h1>
+            </div>
+            <span class="header-emoji" aria-hidden="true">🫣</span>
+        </header>
+
+        <section class="excuse-card" aria-labelledby="formTitle">
+            <h2 id="formTitle">どんなことが起きた？</h2>
+            <p class="intro">日常のちょっとした失敗を、笑える言い訳に変えます。</p>
+
+            <form id="excuseForm">
+                <div class="form-group">
+                    <label for="situation">状況</label>
+                    <textarea id="situation" name="situation" maxlength="300" required
+                        placeholder="例：朝寝坊して、会議に遅れそう"></textarea>
+                    <div class="field-note"><span id="charCount">0</span> / 300文字</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="style">言い訳の雰囲気</label>
+                    <select id="style" name="style">
+                        <option value="壮大でドラマチック">壮大でドラマチック</option>
+                        <option value="妙にもっともらしい">妙にもっともらしい</option>
+                        <option value="SF・宇宙っぽい">SF・宇宙っぽい</option>
+                        <option value="ゆるくてかわいい">ゆるくてかわいい</option>
+                    </select>
+                </div>
+
+                <button class="btn generate-button" id="generateButton" type="submit">言い訳を考える</button>
+            </form>
+        </section>
+
+        <section class="result-card" id="resultCard" aria-live="polite" hidden>
+            <p class="result-label">本日の言い訳</p>
+            <blockquote id="excuseText"></blockquote>
+            <div class="reason-box">
+                <span aria-hidden="true">🧐</span>
+                <p id="reasonText"></p>
+            </div>
+            <div class="result-actions">
+                <button class="btn secondary-button" id="copyButton" type="button">言い訳をコピー</button>
+                <button class="text-button" id="againButton" type="button">別の言い訳を作る ↻</button>
+            </div>
+            <p class="copy-status" id="copyStatus" role="status"></p>
+        </section>
+
+        <p class="disclaimer">※ もちろん、冗談としてお楽しみください。</p>
+        <a class="back-link" href="/">← アプリ一覧へ</a>
+        <div class="loading" id="loading" role="status">言い訳を練り上げています…</div>
+        <p class="error-message" id="errorMessage" role="alert" hidden></p>
+    </main>
+
+    <script>
+        const form = document.getElementById('excuseForm');
+        const situationInput = document.getElementById('situation');
+        const generateButton = document.getElementById('generateButton');
+        const resultCard = document.getElementById('resultCard');
+        const loading = document.getElementById('loading');
+        const errorMessage = document.getElementById('errorMessage');
+
+        situationInput.addEventListener('input', () => {
+            document.getElementById('charCount').textContent = situationInput.value.length;
+        });
+
+        form.addEventListener('submit', generateExcuse);
+        document.getElementById('againButton').addEventListener('click', generateExcuse);
+        document.getElementById('copyButton').addEventListener('click', copyExcuse);
+
+        async function generateExcuse(event) {
+            event?.preventDefault();
+            const situation = situationInput.value.trim();
+            if (!situation) {
+                situationInput.focus();
+                return;
+            }
+
+            errorMessage.hidden = true;
+            resultCard.hidden = true;
+            loading.classList.add('show');
+            generateButton.disabled = true;
+
+            try {
+                const response = await fetch('/api/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        app: 'excuse',
+                        title: '言い訳メーカー',
+                        situation,
+                        style: document.getElementById('style').value
+                    })
+                });
+
+                const payload = await response.json();
+                if (!response.ok) throw new Error(payload.error || '生成に失敗しました');
+                const result = payload.data?.[0];
+                if (!result?.excuse || !result?.reason) throw new Error('結果を読み取れませんでした');
+
+                document.getElementById('excuseText').textContent = `「${result.excuse}」`;
+                document.getElementById('reasonText').textContent = result.reason;
+                document.getElementById('copyStatus').textContent = '';
+                resultCard.hidden = false;
+                resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } catch (error) {
+                errorMessage.textContent = `うまく作れませんでした。少し待ってからもう一度お試しください。`;
+                errorMessage.hidden = false;
+                console.error('言い訳の生成に失敗しました:', error);
+            } finally {
+                loading.classList.remove('show');
+                generateButton.disabled = false;
+            }
+        }
+
+        async function copyExcuse() {
+            const text = document.getElementById('excuseText').textContent;
+            try {
+                await navigator.clipboard.writeText(text);
+                document.getElementById('copyStatus').textContent = 'コピーしました！';
+            } catch {
+                document.getElementById('copyStatus').textContent = 'コピーできませんでした。文章を選択してコピーしてください。';
+            }
+        }
+    </script>
+</body>
+</html>

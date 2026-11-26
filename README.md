@@ -1,14 +1,14 @@
-# Generic Web API for LLM Integration
+# AIアプリ集
 
-A flexible Node.js web API that allows you to create LLM-powered applications by simply editing a Markdown prompt file. No code changes required for different use cases.
+Markdown のプロンプトと HTML 画面を組み合わせて、LLM を使った小さなアプリを動かす Node.js サーバーです。現在は IT パスポート対策クイズと言い訳メーカーを収録しています。
 
 ## Features
 
-- 🎯 **Generic Design**: One API endpoint for any LLM application
-- 📝 **Markdown Prompts**: Define your application logic in `prompt.md`
+- 🎯 **Generic Design**: One API endpoint for all included apps
+- 📝 **Markdown Prompts**: Define each app's logic in a Markdown prompt
 - 🔄 **Variable Substitution**: Automatic replacement of `${variable}` placeholders
 - 🤖 **Multi-Provider**: Supports OpenAI and Google Gemini
-- ⚡ **No Code Changes**: Switch between applications by editing `prompt.md`
+- 🔀 **Prompt Routing**: Select an app's registered prompt with the `app` request field
 
 ## Quick Start
 
@@ -66,9 +66,9 @@ Visit `http://localhost:8080`
 ### Architecture
 
 ```
-Client (quiz.html) → POST /api/ → server.js → LLM → Response
-                                     ↓
-                              prompt.md (template)
+Client HTML → POST /api/ → server.js → LLM → Response
+                                ↓
+                 prompt.md / prompts/excuse.md
 ```
 
 ### Variable Substitution
@@ -98,11 +98,14 @@ Format: JSON array
 **Request Body:**
 ```json
 {
+  "app": "quiz",
   "title": "My Quiz",
   "count": 5,
   "any_variable": "value"
 }
 ```
+
+`app` は `quiz` または `excuse` を指定します。省略すると `quiz` になります。指定したアプリに対応するプロンプトの `${variable}` が、リクエスト値に置き換わります。
 
 **Response:**
 ```json
@@ -114,7 +117,7 @@ Format: JSON array
 
 ## Example Applications
 
-### 1. IT Certification Quiz (Included)
+### 1. IT Certification Quiz
 
 **Files:**
 - `prompt.md` - Defines IT quiz generation logic
@@ -122,7 +125,15 @@ Format: JSON array
 
 **Usage:** Generate IT certification practice questions
 
-### 2. Translation App (Example)
+### 2. 言い訳メーカー
+
+**Files:**
+- `prompts/excuse.md` - Defines the excuse generation logic
+- `public/excuse.html` - Excuse maker interface
+
+The app sends `app: "excuse"` along with `situation` and `style` to `/api/`.
+
+### 3. Translation App (Example)
 
 **prompt.md:**
 ```markdown
@@ -173,24 +184,28 @@ Provide:
 
 ```
 generic-webapi/
-├── server.js          # Generic API server (no changes needed)
-├── prompt.md          # Application-specific prompt template
+├── server.js          # API server and app-to-prompt mapping
+├── prompt.md          # IT quiz prompt template
+├── prompts/
+│   └── excuse.md       # Excuse maker prompt template
 ├── package.json       # Dependencies
 ├── .env.example       # Environment variables template
 ├── public/            # Static files
 │   ├── quiz.html     # IT quiz application
+│   ├── excuse.html   # Excuse maker
 │   ├── style.css     # Styles
+│   ├── excuse.css    # Excuse maker styles
 │   └── quiz.css      # Quiz-specific styles
 └── README.md         # This file
 ```
 
 ## Creating New Applications
 
-1. **Edit `prompt.md`** - Define your application logic and variables
-2. **Create client HTML** - Build your user interface in `public/`
-3. **Send requests** - Use any variables you defined in `prompt.md`
+1. **Create a prompt file** - Define the app logic and variables in Markdown
+2. **Register the prompt in `server.js`** - Add its app name to `PROMPT_FILES`
+3. **Create client HTML** - Build the interface in `public/` and send its app name plus variables to `/api/`
 
-No server code changes required!
+Each app has a registered prompt template and its own client page.
 
 ## Environment Variables
 

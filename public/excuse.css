@@ -1,0 +1,208 @@
+body {
+    color: #452d22;
+    background: linear-gradient(145deg, #fff4e8 0%, #ffe5d2 55%, #f9d9e4 100%);
+}
+
+.excuse-app {
+    max-width: 680px;
+    padding-top: 36px;
+    padding-bottom: 40px;
+}
+
+.excuse-app .header {
+    min-height: 190px;
+    margin-bottom: 18px;
+    padding: 30px 34px;
+    background: #fffaf5;
+    box-shadow: 0 12px 35px rgba(115, 72, 47, 0.12);
+}
+
+.eyebrow, .result-label {
+    color: #c35d45;
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+}
+
+.excuse-app .header h1 {
+    margin-top: 8px;
+    color: #452d22;
+    font-size: clamp(1.8rem, 6vw, 2.5rem);
+    line-height: 1.2;
+}
+
+.header-emoji {
+    align-self: flex-end;
+    font-size: 4rem;
+    transform: rotate(10deg);
+}
+
+.excuse-card, .result-card {
+    padding: 28px 32px;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 12px 35px rgba(115, 72, 47, 0.12);
+}
+
+.excuse-card h2 {
+    color: #452d22;
+    font-size: 1.3rem;
+}
+
+.intro {
+    margin: 4px 0 24px;
+    color: #806b60;
+}
+
+.excuse-app .form-group label {
+    color: #543d30;
+}
+
+.excuse-app textarea, .excuse-app select {
+    border-color: #eadbd0;
+    background: #fffdfa;
+}
+
+.excuse-app textarea {
+    min-height: 115px;
+}
+
+.field-note {
+    margin-top: 5px;
+    color: #9a877c;
+    font-size: 0.8rem;
+    text-align: right;
+}
+
+.excuse-app .btn {
+    background: linear-gradient(135deg, #e67855, #c84e65);
+}
+
+.generate-button {
+    width: 100%;
+    margin-top: 4px;
+}
+
+.generate-button:disabled {
+    cursor: wait;
+    opacity: 0.65;
+}
+
+.result-card {
+    margin-top: 18px;
+    animation: pop-in 350ms ease both;
+}
+
+.result-card blockquote {
+    margin: 12px 0 20px;
+    color: #452d22;
+    font-size: 1.45rem;
+    font-weight: 750;
+    line-height: 1.6;
+}
+
+.reason-box {
+    display: flex;
+    gap: 10px;
+    padding: 15px;
+    border-radius: 10px;
+    background: #fff4e8;
+    color: #71594b;
+}
+
+.reason-box span {
+    flex: 0 0 auto;
+}
+
+.result-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 18px;
+    margin-top: 22px;
+}
+
+.secondary-button {
+    padding: 10px 16px;
+    font-size: 0.95rem;
+}
+
+.text-button, .back-link {
+    border: 0;
+    color: #a94b51;
+    font: inherit;
+    font-weight: 700;
+    text-decoration: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+.copy-status, .disclaimer, .back-link {
+    font-size: 0.88rem;
+}
+
+.copy-status {
+    min-height: 1.3em;
+    margin-top: 8px;
+    color: #6c8061;
+}
+
+.disclaimer {
+    margin: 18px 0 8px;
+    color: #806b60;
+    text-align: center;
+}
+
+.back-link {
+    display: block;
+    text-align: center;
+}
+
+.excuse-app .loading {
+    margin-top: 14px;
+    color: #a94b51;
+}
+
+.error-message {
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: 8px;
+    background: #fff0ed;
+    color: #9c3c34;
+    text-align: center;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+@keyframes pop-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 600px) {
+    .excuse-app {
+        padding: 14px;
+    }
+
+    .excuse-app .header, .excuse-card, .result-card {
+        padding: 22px;
+    }
+
+    .header-emoji {
+        font-size: 3rem;
+    }
+
+    .result-card blockquote {
+        font-size: 1.2rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+    }
+}

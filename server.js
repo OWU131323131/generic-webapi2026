@@ -1,5 +1,6 @@
 const express = require('express');
 const fs = require('fs');
+const path = require('path');
 // API Key などの環境変数は .env.local から読み込む
 require('dotenv').config({ path: '.env.local' });
 
@@ -20,11 +21,18 @@ const MODELS = {
 };
 const MODEL = MODELS[PROVIDER];
 
-let promptTemplate;
+const PROMPT_FILES = {
+    quiz: path.join(__dirname, 'prompt.md'),
+    excuse: path.join(__dirname, 'prompts', 'excuse.md'),
+};
+
+const PROMPT_TEMPLATES = {};
 try {
-    promptTemplate = fs.readFileSync('prompt.md', 'utf8');
+    for (const [name, filePath] of Object.entries(PROMPT_FILES)) {
+        PROMPT_TEMPLATES[name] = fs.readFileSync(filePath, 'utf8');
+    }
 } catch (error) {
-    console.error('Error reading prompt.md:', error);
+    console.error('Error reading an application prompt:', error);
     process.exit(1);
 }
 
@@ -43,9 +51,12 @@ const MAX_COUNT = 20;
 
 app.post('/api/', async (req, res) => {
     try {
-        // title と、変数置換に使うその他のキーを受け取る
-        // （prompt.md がプロンプトを定義するので、リクエストでの上書きは許可しない）
-        const { title = 'Generated Content', ...variables } = req.body;
+        // 使用するプロンプトはサーバー側の許可リストから選ぶ
+        const { app: appName = 'quiz', title = 'Generated Content', ...variables } = req.body;
+        const promptTemplate = PROMPT_TEMPLATES[appName];
+        if (!promptTemplate) {
+            return res.status(400).json({ error: 'Unknown app' });
+        }
 
         // count が指定されている場合は 1〜MAX_COUNT の範囲に収める
         if (variables.count !== undefined) {
