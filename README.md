@@ -7,6 +7,7 @@ Markdown のプロンプトと HTML 画面を組み合わせて、LLM を使っ�
 - 🎯 **Generic Design**: One API endpoint for all included apps
 - 📝 **Markdown Prompts**: Define each app's logic in a Markdown prompt
 - 🔄 **Variable Substitution**: Automatic replacement of `${variable}` placeholders
+- 🧩 **Structured Output**: OpenAI requests use strict JSON Schemas for each app
 - 🤖 **Multi-Provider**: Supports OpenAI and Google Gemini
 - 🔀 **Prompt Routing**: Select an app's registered prompt with the `app` request field
 
@@ -106,6 +107,8 @@ Format: JSON array
 ```
 
 `app` は `quiz` または `excuse` を指定します。省略すると `quiz` になります。指定したアプリに対応するプロンプトの `${variable}` が、リクエスト値に置き換わります。
+
+OpenAI を使う場合、API は `app` に応じた strict JSON Schema を指定し、返却データのキーと型を制約します。クイズでは問題数と4つの選択肢も検証します。
 
 **Response:**
 ```json

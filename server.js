@@ -21,6 +21,56 @@ const MODELS = {
 };
 const MODEL = MODELS[PROVIDER];
 
+// OpenAI Structured Outputs schemas for each app.
+const RESPONSE_SCHEMAS = {
+    quiz: {
+        type: 'object',
+        properties: {
+            data: {
+                type: 'array',
+                items: {
+                    type: 'object',
+                    properties: {
+                        question: { type: 'string' },
+                        selections: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            minItems: 4,
+                            maxItems: 4,
+                        },
+                        answer: { type: 'integer', enum: [0, 1, 2, 3] },
+                    },
+                    required: ['question', 'selections', 'answer'],
+                    additionalProperties: false,
+                },
+            },
+        },
+        required: ['data'],
+        additionalProperties: false,
+    },
+    excuse: {
+        type: 'object',
+        properties: {
+            data: {
+                type: 'array',
+                items: {
+                    type: 'object',
+                    properties: {
+                        excuse: { type: 'string' },
+                        reason: { type: 'string' },
+                    },
+                    required: ['excuse', 'reason'],
+                    additionalProperties: false,
+                },
+                minItems: 1,
+                maxItems: 1,
+            },
+        },
+        required: ['data'],
+        additionalProperties: false,
+    },
+};
+
 const PROMPT_FILES = {
     quiz: path.join(__dirname, 'prompt.md'),
     excuse: path.join(__dirname, 'prompts', 'excuse.md'),
@@ -73,9 +123,9 @@ app.post('/api/', async (req, res) => {
 
         let result;
         if (PROVIDER === 'openai') {
-            result = await callOpenAI(finalPrompt);
+            result = await callOpenAI(finalPrompt, appName, Number(variables.count));
         } else if (PROVIDER === 'gemini') {
-            result = await callGemini(finalPrompt);
+            result = await callGemini(finalPrompt, appName, Number(variables.count));
         } else {
             return res.status(400).json({ error: 'Invalid provider configuration' });
         }
@@ -101,7 +151,7 @@ function fillTemplate(template, variables) {
     });
 }
 
-async function callOpenAI(prompt) {
+async function callOpenAI(prompt, appName, count) {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
         throw new Error('OPENAI_API_KEY environment variable is not set');
@@ -119,7 +169,7 @@ async function callOpenAI(prompt) {
                 { role: 'system', content: prompt }
             ],
             max_completion_tokens: 2000,
-            response_format: { type: "json_object" }
+            response_format: getResponseFormat(appName, count)
         })
     });
 
@@ -129,11 +179,47 @@ async function callOpenAI(prompt) {
     }
 
     const data = await response.json();
-    const responseText = data.choices[0].message.content;
-    return extractArray(responseText);
+    const choice = data.choices?.[0];
+    if (!choice) {
+        throw new Error('OpenAI returned no completion choice');
+    }
+    if (choice.message?.refusal) {
+        throw new Error('OpenAI refused to generate a response');
+    }
+    if (choice.finish_reason !== 'stop') {
+        throw new Error(`OpenAI response did not finish normally: ${choice.finish_reason}`);
+    }
+
+    return extractArray(choice.message?.content, appName, count);
 }
 
-async function callGemini(prompt) {
+function getResponseFormat(appName, count) {
+    const baseSchema = RESPONSE_SCHEMAS[appName];
+    const dataSchema = { ...baseSchema.properties.data };
+
+    // When the quiz requests a count, constrain the response array to exactly that size.
+    if (appName === 'quiz' && Number.isInteger(count)) {
+        dataSchema.minItems = count;
+        dataSchema.maxItems = count;
+    }
+
+    return {
+        type: 'json_schema',
+        json_schema: {
+            name: `${appName}_response`,
+            strict: true,
+            schema: {
+                ...baseSchema,
+                properties: {
+                    ...baseSchema.properties,
+                    data: dataSchema,
+                },
+            },
+        },
+    };
+}
+
+async function callGemini(prompt, appName, count) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
         throw new Error('GEMINI_API_KEY environment variable is not set');
@@ -165,11 +251,11 @@ async function callGemini(prompt) {
 
     const data = await response.json();
     const responseText = data.candidates[0].content.parts[0].text;
-    return extractArray(responseText);
+    return extractArray(responseText, appName, count);
 }
 
-// LLM が返した JSON 文字列をパースし、最初に見つかった配列を取り出す
-function extractArray(responseText) {
+// Parse the model response and validate the app data before returning it to the UI.
+function extractArray(responseText, appName, count) {
     let parsedData;
     try {
         parsedData = JSON.parse(responseText);
@@ -177,9 +263,25 @@ function extractArray(responseText) {
         throw new Error('Failed to parse LLM response: ' + parseError.message);
     }
 
-    const arrayData = Object.values(parsedData).find(Array.isArray);
-    if (!arrayData) {
-        throw new Error('No array found in the LLM response object.');
+    const arrayData = parsedData?.data;
+    if (!Array.isArray(arrayData)) {
+        throw new Error('The LLM response must contain a data array.');
+    }
+
+    if (appName === 'excuse') {
+        if (arrayData.length !== 1 || !arrayData.every(item =>
+            typeof item?.excuse === 'string' && typeof item?.reason === 'string')) {
+            throw new Error('The LLM response does not match the excuse schema.');
+        }
+    } else if (appName === 'quiz') {
+        if ((Number.isInteger(count) && arrayData.length !== count) || !arrayData.every(item =>
+            typeof item?.question === 'string' &&
+            Array.isArray(item?.selections) &&
+            item.selections.length === 4 &&
+            item.selections.every(selection => typeof selection === 'string') &&
+            Number.isInteger(item?.answer) && item.answer >= 0 && item.answer <= 3)) {
+            throw new Error('The LLM response does not match the quiz schema.');
+        }
     }
     return arrayData;
 }
